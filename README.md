@@ -1,7 +1,7 @@
 
 # SportsCourt
 
-Mobile app for booking sports courts (football, tennis, basketball) — course project for **PAM** (Programarea Aplicațiilor Mobile), UTM / FCIM / ISA.
+Mobile app for booking sports courts (football, tennis, basketball) — course project for **PAM** (Programarea Aplicațiilor Mobile), UTM / FCIM.
 
 | | |
 |---|---|
