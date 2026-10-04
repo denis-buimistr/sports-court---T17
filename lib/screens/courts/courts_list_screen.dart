@@ -1,54 +1,63 @@
-// lib/screens/courts/courts_list_screen.dart
 import 'package:flutter/material.dart';
 import '../../data/mock_data.dart';
+import '../../models/court.dart';
+import '../../widgets/app_text_field.dart';
 import '../../widgets/court_card.dart';
+import '../../widgets/filter_chips_row.dart';
+import '../../widgets/section_title.dart';
+import '../../widgets/sport_style.dart';
 import 'court_details_screen.dart';
 
+// search and filters are visual only until L4
 class CourtsListScreen extends StatelessWidget {
   const CourtsListScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final courts = MockData.courts;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Площадки')),
+      appBar: AppBar(
+        title: const Text('Площадки'),
+        actions: [
+          IconButton(onPressed: () {}, icon: const Icon(Icons.favorite_border)),
+          IconButton(onPressed: () {}, icon: const Icon(Icons.notifications_none)),
+        ],
+      ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Поиск площадки...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 8, 16, 12),
+            child: AppTextField(
+              hint: 'Поиск по названию или адресу',
+              prefixIcon: Icons.search,
+              suffix: Icon(Icons.tune),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: SizedBox(
-              height: 36,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: const [
-                  Chip(label: Text('Все')),
-                  SizedBox(width: 8),
-                  Chip(label: Text('Футбол')),
-                  SizedBox(width: 8),
-                  Chip(label: Text('Теннис')),
-                  SizedBox(width: 8),
-                  Chip(label: Text('Баскетбол')),
-                ],
-              ),
-            ),
+          FilterChipsRow(
+            options: [
+              const FilterOption('Все виды спорта'),
+              for (final s in Sport.values) FilterOption(s.label, icon: s.icon),
+            ],
           ),
           const SizedBox(height: 8),
+          FilterChipsRow(
+            options: [
+              const FilterOption('Все районы', icon: Icons.place_outlined),
+              for (final d in MockData.districts) FilterOption(d),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: SectionTitle('Рядом с вами', trailing: '${courts.length} площадок'),
+          ),
           Expanded(
             child: ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: MockData.courts.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+              itemCount: courts.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 16),
               itemBuilder: (context, index) {
-                final court = MockData.courts[index];
+                final court = courts[index];
                 return CourtCard(
                   court: court,
                   onTap: () => Navigator.push(
