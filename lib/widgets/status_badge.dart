@@ -1,29 +1,36 @@
-
 import 'package:flutter/material.dart';
-import '../models/booking.dart';
+import '../models/court.dart';
+import 'sport_style.dart';
 
-class StatusBadge extends StatelessWidget {
-  final BookingStatus status;
+class SportBadge extends StatelessWidget {
+  final Sport sport;
 
-  const StatusBadge({super.key, required this.status});
+  const SportBadge(this.sport, {super.key});
 
   @override
   Widget build(BuildContext context) {
-    final (label, color) = switch (status) {
-      BookingStatus.confirmed => ('Подтверждено', Colors.green),
-      BookingStatus.completed => ('Завершено', Colors.blueGrey),
-      BookingStatus.cancelled => ('Отменено', Colors.red),
-    };
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Text(
-        label,
-        style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 12),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(sport.icon, size: 16, color: scheme.primary),
+          const SizedBox(width: 6),
+          Text(
+            sport.label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: scheme.onSurface,
+            ),
+          ),
+        ],
       ),
     );
   }
