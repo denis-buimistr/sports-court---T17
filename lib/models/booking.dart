@@ -1,23 +1,30 @@
 import 'court.dart';
+import 'time_slot.dart';
 
-enum BookingStatus { confirmed, completed, cancelled }
+enum BookingStatus {
+  confirmed('Подтверждена'),
+  completed('Завершена'),
+  cancelled('Отменена');
+
+  final String label;
+  const BookingStatus(this.label);
+}
 
 class Booking {
   final String id;
   final Court court;
-  final String date;
-  final String startTime;
-  final String endTime;
+  final TimeSlot slot;
   final double totalPrice;
   final BookingStatus status;
 
   const Booking({
     required this.id,
     required this.court,
-    required this.date,
-    required this.startTime,
-    required this.endTime,
+    required this.slot,
     required this.totalPrice,
     required this.status,
   });
+
+  // upcoming = confirmed
+  bool get isUpcoming => status == BookingStatus.confirmed;
 }

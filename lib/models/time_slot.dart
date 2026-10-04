@@ -1,4 +1,3 @@
-
 class TimeSlot {
   final String id;
   final String courtId;
