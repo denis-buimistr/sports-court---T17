@@ -1,11 +1,45 @@
 import 'package:flutter/material.dart';
-import '../../widgets/app_text_field.dart';
-import '../main_navigation.dart';
-import 'register_screen.dart';
+import 'package:go_router/go_router.dart';
 
-// static mockup: no Form, no validation
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _emailCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
+  bool _obscure = true;
+
+  @override
+  void dispose() {
+    _emailCtrl.dispose();
+    _passwordCtrl.dispose();
+    super.dispose();
+  }
+
+  String? _validateEmail(String? value) {
+    final email = value?.trim() ?? '';
+    if (email.isEmpty) return 'Введите e-mail';
+    if (!email.contains('@') || !email.contains('.')) return 'Неверный формат e-mail';
+    return null;
+  }
+
+  String? _validatePassword(String? value) {
+    final password = value ?? '';
+    if (password.isEmpty) return 'Введите пароль';
+    if (password.length < 6) return 'Минимум 6 символов';
+    return null;
+  }
+
+  void _submit() {
+    if (!_formKey.currentState!.validate()) return;
+    // go, not push: login leaves the stack
+    context.go('/courts');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,79 +90,73 @@ class LoginScreen extends StatelessWidget {
                       color: scheme.onPrimary.withValues(alpha: 0.9),
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.sports_soccer, color: scheme.onPrimary.withValues(alpha: 0.8)),
-                      const SizedBox(width: 18),
-                      Icon(Icons.sports_tennis, color: scheme.onPrimary.withValues(alpha: 0.8)),
-                      const SizedBox(width: 18),
-                      Icon(Icons.sports_basketball, color: scheme.onPrimary.withValues(alpha: 0.8)),
-                      const SizedBox(width: 18),
-                      Icon(Icons.sports_volleyball, color: scheme.onPrimary.withValues(alpha: 0.8)),
-                    ],
-                  ),
                 ],
               ),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text('С возвращением', style: theme.textTheme.headlineSmall),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Войдите, чтобы управлять бронями',
-                    style: theme.textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
-                  ),
-                  const SizedBox(height: 24),
-                  const AppTextField(
-                    label: 'E-mail',
-                    prefixIcon: Icons.mail_outline,
-                    keyboardType: TextInputType.emailAddress,
-                  ),
-                  const SizedBox(height: 14),
-                  const AppTextField(
-                    label: 'Пароль',
-                    prefixIcon: Icons.lock_outline,
-                    obscureText: true,
-                    suffix: Icon(Icons.visibility_outlined),
-                  ),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: () {},
-                      child: const Text('Забыли пароль?'),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text('С возвращением', style: theme.textTheme.headlineSmall),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Войдите, чтобы управлять бронями',
+                      style: theme.textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  FilledButton(
-                    onPressed: () => Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (_) => const MainNavigation()),
-                    ),
-                    child: const Text('Войти'),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Нет аккаунта?',
-                        style: theme.textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
+                    const SizedBox(height: 24),
+                    TextFormField(
+                      controller: _emailCtrl,
+                      keyboardType: TextInputType.emailAddress,
+                      textInputAction: TextInputAction.next,
+                      autocorrect: false,
+                      decoration: const InputDecoration(
+                        labelText: 'E-mail',
+                        prefixIcon: Icon(Icons.mail_outline),
+                        border: OutlineInputBorder(),
                       ),
-                      TextButton(
-                        onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                      validator: _validateEmail,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _passwordCtrl,
+                      obscureText: _obscure,
+                      textInputAction: TextInputAction.done,
+                      onFieldSubmitted: (_) => _submit(),
+                      decoration: InputDecoration(
+                        labelText: 'Пароль',
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        border: const OutlineInputBorder(),
+                        suffixIcon: IconButton(
+                          icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                          onPressed: () => setState(() => _obscure = !_obscure),
                         ),
-                        child: const Text('Зарегистрируйтесь'),
                       ),
-                    ],
-                  ),
-                ],
+                      validator: _validatePassword,
+                    ),
+                    const SizedBox(height: 24),
+                    FilledButton(
+                      onPressed: _submit,
+                      child: const Text('Войти'),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Нет аккаунта?',
+                          style: theme.textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
+                        ),
+                        TextButton(
+                          onPressed: () => context.push('/register'),
+                          child: const Text('Зарегистрируйтесь'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ],

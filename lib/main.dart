@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/auth/login_screen.dart';
+import 'router.dart';
 
 void main() => runApp(const SportsCourtApp());
 
@@ -11,9 +11,10 @@ class SportsCourtApp extends StatelessWidget {
     // palette is derived from one seed color
     final scheme = ColorScheme.fromSeed(seedColor: const Color(0xFF1B8F55));
 
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'SportsCourt',
       debugShowCheckedModeBanner: false,
+      routerConfig: router,
       theme: ThemeData(
         colorScheme: scheme,
         textTheme: const TextTheme(
@@ -34,7 +35,6 @@ class SportsCourtApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const LoginScreen(),
     );
   }
 }

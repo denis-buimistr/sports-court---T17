@@ -6,8 +6,9 @@ import 'status_badge.dart';
 
 class BookingCard extends StatelessWidget {
   final Booking booking;
+  final VoidCallback? onCancel;
 
-  const BookingCard({super.key, required this.booking});
+  const BookingCard({super.key, required this.booking, this.onCancel});
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +18,7 @@ class BookingCard extends StatelessWidget {
     // action depends on status
     final Widget? action = switch (booking.status) {
       BookingStatus.confirmed => TextButton.icon(
-          onPressed: () {},
+          onPressed: onCancel,
           icon: const Icon(Icons.close, size: 18),
           label: const Text('Отменить бронь'),
           style: TextButton.styleFrom(foregroundColor: scheme.error),
@@ -54,7 +55,7 @@ class BookingCard extends StatelessWidget {
             children: [
               StatusBadge(status: booking.status),
               const Spacer(),
-              ?action,
+              if (action != null) action,
             ],
           ),
         ],

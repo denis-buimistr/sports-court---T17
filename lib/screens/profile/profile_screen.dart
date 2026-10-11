@@ -1,13 +1,39 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../data/mock_data.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/court_tile.dart';
 import '../../widgets/section_title.dart';
 import '../../widgets/stat_tile.dart';
-import '../auth/login_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
+
+  // destructive action: confirm with a dialog
+  Future<void> _logout(BuildContext context) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('Выйти из аккаунта?'),
+        content: const Text('Придётся войти заново, чтобы управлять бронями.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx, false),
+            child: const Text('Нет'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogCtx, true),
+            child: const Text('Да, выйти'),
+          ),
+        ],
+      ),
+    );
+
+    if (ok == true && context.mounted) {
+      // go: the tab section leaves the stack
+      context.go('/login');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -72,10 +98,12 @@ class ProfileScreen extends StatelessWidget {
           AppCard(
             child: Column(
               children: [
-                const ListTile(
-                  leading: Icon(Icons.person_outline),
-                  title: Text('Личные данные'),
-                  trailing: Icon(Icons.chevron_right),
+                ListTile(
+                  leading: const Icon(Icons.person_outline),
+                  title: const Text('Личные данные'),
+                  trailing: const Icon(Icons.chevron_right),
+                  // push: go in and come back
+                  onTap: () => context.push('/profile/edit'),
                 ),
                 const Divider(height: 1, indent: 56),
                 const ListTile(
@@ -99,11 +127,7 @@ class ProfileScreen extends StatelessWidget {
                 ListTile(
                   leading: Icon(Icons.logout, color: scheme.error),
                   title: Text('Выйти', style: TextStyle(color: scheme.error)),
-                  onTap: () => Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (_) => const LoginScreen()),
-                    (route) => false,
-                  ),
+                  onTap: () => _logout(context),
                 ),
               ],
             ),

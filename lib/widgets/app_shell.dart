@@ -1,34 +1,19 @@
 import 'package:flutter/material.dart';
-import 'courts/courts_list_screen.dart';
-import 'my_bookings/my_bookings_screen.dart';
-import 'profile/profile_screen.dart';
+import 'package:go_router/go_router.dart';
 
-// only stateful widget in L2: keeps just the tab index
-class MainNavigation extends StatefulWidget {
-  final int initialIndex;
+// keeps the NavigationBar while the branch content changes
+class AppShell extends StatelessWidget {
+  final StatefulNavigationShell navigationShell;
 
-  const MainNavigation({super.key, this.initialIndex = 0});
-
-  @override
-  State<MainNavigation> createState() => _MainNavigationState();
-}
-
-class _MainNavigationState extends State<MainNavigation> {
-  late int _index = widget.initialIndex;
-
-  static const _pages = <Widget>[
-    CourtsListScreen(),
-    MyBookingsScreen(),
-    ProfileScreen(),
-  ];
+  const AppShell({super.key, required this.navigationShell});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _index, children: _pages),
+      body: navigationShell,
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
+        selectedIndex: navigationShell.currentIndex,
+        onDestinationSelected: navigationShell.goBranch,
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.sports_soccer_outlined),
