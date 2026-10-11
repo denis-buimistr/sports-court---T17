@@ -1,23 +1,40 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../data/mock_data.dart';
-import '../../models/court.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/bottom_action_bar.dart';
 import '../../widgets/court_tile.dart';
 import '../../widgets/info_row.dart';
 import '../../widgets/section_title.dart';
-import '../main_navigation.dart';
 
-// summary + total, slot data comes from MockData
 class BookingConfirmScreen extends StatelessWidget {
-  final Court court;
+  final String courtId;
+  final String slotId;
 
-  const BookingConfirmScreen({super.key, required this.court});
+  const BookingConfirmScreen({
+    super.key,
+    required this.courtId,
+    required this.slotId,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+
+    // both ids come from the path, both objects are looked up here
+    final court = MockData.courts.where((c) => c.id == courtId).firstOrNull;
+    final slot = court == null
+        ? null
+        : MockData.slotsFor(court.id).where((s) => s.id == slotId).firstOrNull;
+
+    if (court == null || slot == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Подтверждение брони')),
+        body: const Center(child: Text('Бронь не найдена')),
+      );
+    }
+
     final price = '${court.pricePerHour.toStringAsFixed(0)} MDL';
 
     return Scaffold(
@@ -36,12 +53,12 @@ class BookingConfirmScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Column(
               children: [
-                const InfoRow(icon: Icons.calendar_today_outlined, label: 'Дата', value: MockData.demoDate),
+                InfoRow(icon: Icons.calendar_today_outlined, label: 'Дата', value: slot.date),
                 const Divider(height: 1),
-                const InfoRow(
+                InfoRow(
                   icon: Icons.schedule,
                   label: 'Время',
-                  value: '${MockData.demoStart} – ${MockData.demoEnd}',
+                  value: '${slot.startTime} – ${slot.endTime}',
                 ),
                 const Divider(height: 1),
                 const InfoRow(icon: Icons.timer_outlined, label: 'Длительность', value: '1 час'),
@@ -92,18 +109,14 @@ class BookingConfirmScreen extends StatelessWidget {
         value: price,
         buttonLabel: 'Подтвердить бронь',
         onPressed: () {
-          final messenger = ScaffoldMessenger.of(context);
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (_) => const MainNavigation(initialIndex: 1)),
-            (route) => false,
-          );
-          messenger.showSnackBar(
+          ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               behavior: SnackBarBehavior.floating,
-              content: Text('Бронь подтверждена: ${court.name}, ${MockData.demoDate}'),
+              content: Text('Бронь подтверждена: ${court.name}, ${slot.startTime}'),
             ),
           );
+          // go: the whole booking chain leaves the stack
+          context.go('/bookings');
         },
       ),
     );
