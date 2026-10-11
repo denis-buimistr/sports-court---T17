@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../data/mock_data.dart';
 import '../../models/court.dart';
 import '../../widgets/app_text_field.dart';
@@ -6,9 +7,7 @@ import '../../widgets/court_card.dart';
 import '../../widgets/filter_chips_row.dart';
 import '../../widgets/section_title.dart';
 import '../../widgets/sport_style.dart';
-import 'court_details_screen.dart';
 
-// search and filters are visual only until L4
 class CourtsListScreen extends StatelessWidget {
   const CourtsListScreen({super.key});
 
@@ -55,15 +54,13 @@ class CourtsListScreen extends StatelessWidget {
             child: ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
               itemCount: courts.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 16),
+              separatorBuilder: (_, __) => const SizedBox(height: 16),
               itemBuilder: (context, index) {
                 final court = courts[index];
                 return CourtCard(
                   court: court,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => CourtDetailsScreen(court: court)),
-                  ),
+                  // push: go in and come back
+                  onTap: () => context.push('/courts/${court.id}'),
                 );
               },
             ),

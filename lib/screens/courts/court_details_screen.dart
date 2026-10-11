@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../data/mock_data.dart';
-import '../../models/court.dart';
 import '../../widgets/amenity_chip.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/bottom_action_bar.dart';
@@ -8,17 +8,26 @@ import '../../widgets/court_photo.dart';
 import '../../widgets/info_row.dart';
 import '../../widgets/section_title.dart';
 import '../../widgets/sport_badge.dart';
-import '../booking/time_slot_screen.dart';
 
 class CourtDetailsScreen extends StatelessWidget {
-  final Court court;
+  final String courtId;
 
-  const CourtDetailsScreen({super.key, required this.court});
+  const CourtDetailsScreen({super.key, required this.courtId});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+
+    // the id travels in the path, the screen looks the object up itself
+    final court = MockData.courts.where((c) => c.id == courtId).firstOrNull;
+    if (court == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Площадка')),
+        body: const Center(child: Text('Площадка не найдена')),
+      );
+    }
+
     final slots = MockData.slotsFor(court.id);
     final free = slots.where((s) => s.isAvailable).length;
     final price = court.pricePerHour.toStringAsFixed(0);
@@ -123,10 +132,7 @@ class CourtDetailsScreen extends StatelessWidget {
         caption: 'Цена за час',
         value: '$price MDL',
         buttonLabel: 'Выбрать время',
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => TimeSlotScreen(court: court)),
-        ),
+        onPressed: () => context.push('/courts/${court.id}/slots'),
       ),
     );
   }
