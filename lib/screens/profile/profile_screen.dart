@@ -1,15 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../data/mock_data.dart';
+import 'package:provider/provider.dart';
+import '../../data/mock_store.dart';
+import '../../models/bookings_model.dart';
+import '../../models/courts_model.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/court_tile.dart';
 import '../../widgets/section_title.dart';
 import '../../widgets/stat_tile.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
-  // destructive action: confirm with a dialog
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  // ephemeral state: the switch position lives in the screen
+  bool _simulateError = false;
+
   Future<void> _logout(BuildContext context) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -30,7 +40,6 @@ class ProfileScreen extends StatelessWidget {
     );
 
     if (ok == true && context.mounted) {
-      // go: the tab section leaves the stack
       context.go('/login');
     }
   }
@@ -39,7 +48,9 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final favorites = MockData.courts.take(3).toList();
+
+    final bookings = context.watch<BookingsModel>();
+    final favorites = context.watch<CourtsModel>().courts.take(3).toList();
 
     return Scaffold(
       appBar: AppBar(title: const Text('Профиль')),
@@ -66,13 +77,32 @@ class ProfileScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          const Row(
+          // the stats come from the same model: one mutation moves them all
+          Row(
             children: [
-              Expanded(child: StatTile(icon: Icons.event_available_outlined, value: '12', label: 'броней')),
-              SizedBox(width: 12),
-              Expanded(child: StatTile(icon: Icons.timer_outlined, value: '18 ч', label: 'на площадках')),
-              SizedBox(width: 12),
-              Expanded(child: StatTile(icon: Icons.sports_soccer, value: 'Футбол', label: 'любимый спорт')),
+              Expanded(
+                child: StatTile(
+                  icon: Icons.event_available_outlined,
+                  value: '${bookings.bookings.length}',
+                  label: 'броней',
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: StatTile(
+                  icon: Icons.upcoming_outlined,
+                  value: '${bookings.upcomingCount}',
+                  label: 'предстоящих',
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: StatTile(
+                  icon: Icons.payments_outlined,
+                  value: '${bookings.totalSpent.toStringAsFixed(0)} MDL',
+                  label: 'потрачено',
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 24),
@@ -93,6 +123,22 @@ class ProfileScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
+          const SectionTitle('Разработка'),
+          const SizedBox(height: 8),
+          AppCard(
+            child: SwitchListTile(
+              secondary: Icon(Icons.wifi_off, color: scheme.error),
+              title: const Text('Симулировать сбой сети'),
+              subtitle: const Text('Любой запрос к хранилищу вернёт ошибку'),
+              value: _simulateError,
+              onChanged: (value) {
+                setState(() => _simulateError = value);
+                // the only UI place allowed to know about the mock
+                context.read<MockStore>().simulateError = value;
+              },
+            ),
+          ),
+          const SizedBox(height: 24),
           const SectionTitle('Настройки'),
           const SizedBox(height: 8),
           AppCard(
@@ -102,7 +148,6 @@ class ProfileScreen extends StatelessWidget {
                   leading: const Icon(Icons.person_outline),
                   title: const Text('Личные данные'),
                   trailing: const Icon(Icons.chevron_right),
-                  // push: go in and come back
                   onTap: () => context.push('/profile/edit'),
                 ),
                 const Divider(height: 1, indent: 56),
@@ -110,12 +155,6 @@ class ProfileScreen extends StatelessWidget {
                   leading: Icon(Icons.credit_card_outlined),
                   title: Text('Способы оплаты'),
                   trailing: Icon(Icons.chevron_right),
-                ),
-                const Divider(height: 1, indent: 56),
-                ListTile(
-                  leading: const Icon(Icons.notifications_none),
-                  title: const Text('Уведомления'),
-                  trailing: Switch(value: true, onChanged: (_) {}),
                 ),
                 const Divider(height: 1, indent: 56),
                 const ListTile(

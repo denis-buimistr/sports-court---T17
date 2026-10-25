@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
-import '../../data/mock_data.dart';
+import 'package:provider/provider.dart';
 import '../../models/booking.dart';
+import '../../models/bookings_model.dart';
 import '../../widgets/booking_card.dart';
+import '../../widgets/error_view.dart';
 import '../../widgets/section_title.dart';
 
 class MyBookingsScreen extends StatelessWidget {
   const MyBookingsScreen({super.key});
 
-  // destructive action: ask first
+  // the L3 dialog finally gets its effect
   Future<void> _cancel(BuildContext context, Booking booking) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -15,7 +17,7 @@ class MyBookingsScreen extends StatelessWidget {
         title: const Text('Отменить бронь?'),
         content: Text(
           '${booking.court.name}, ${booking.slot.date} '
-          'в ${booking.slot.startTime}. Отмена бесплатна за 24 часа до начала.',
+          'в ${booking.slot.startTime}. Слот снова станет свободным.',
         ),
         actions: [
           TextButton(
@@ -30,32 +32,44 @@ class MyBookingsScreen extends StatelessWidget {
       ),
     );
 
-    if (ok == true && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          content: Text('Бронь отменена: ${booking.court.name}'),
-        ),
-      );
-    }
+    if (ok != true || !context.mounted) return;
+
+    final error = await context.read<BookingsModel>().cancel(booking.id);
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        content: Text(error ?? 'Бронь отменена: ${booking.court.name}'),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final upcoming = MockData.bookings.where((b) => b.isUpcoming).toList();
-    final past = MockData.bookings.where((b) => !b.isUpcoming).toList();
+    final model = context.watch<BookingsModel>();
 
-    // flat list: String = section header, Booking = card
-    final items = <Object>[
-      'Предстоящие',
-      ...upcoming,
-      'Прошедшие',
-      ...past,
-    ];
+    final Widget body;
+    if (model.isLoading) {
+      body = const Center(child: CircularProgressIndicator());
+    } else if (model.error != null) {
+      body = ErrorView(
+        message: model.error!,
+        onRetry: () => context.read<BookingsModel>().load(),
+      );
+    } else {
+      final upcoming = model.upcoming;
+      final past = model.past;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Мои брони')),
-      body: ListView.separated(
+      // flat list: String = section header, Booking = card
+      final items = <Object>[
+        'Предстоящие',
+        ...upcoming,
+        'Прошедшие',
+        ...past,
+      ];
+
+      body = ListView.separated(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         itemCount: items.length,
         separatorBuilder: (_, _) => const SizedBox(height: 12),
@@ -64,6 +78,7 @@ class MyBookingsScreen extends StatelessWidget {
 
           return switch (item) {
             Booking b => BookingCard(
+                key: ValueKey(b.id), // identity from the data
                 booking: b,
                 onCancel: b.isUpcoming ? () => _cancel(context, b) : null,
               ),
@@ -77,7 +92,20 @@ class MyBookingsScreen extends StatelessWidget {
             _ => const SizedBox.shrink(),
           };
         },
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Мои брони'),
+        actions: [
+          IconButton(
+            onPressed: () => context.read<BookingsModel>().load(),
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
       ),
+      body: body,
     );
   }
 }
