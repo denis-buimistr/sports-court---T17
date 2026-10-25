@@ -4,7 +4,7 @@ class BottomActionBar extends StatelessWidget {
   final String caption;
   final String value;
   final String buttonLabel;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed; // null disables the button
 
   const BottomActionBar({
     super.key,

@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../data/mock_data.dart';
+import 'package:provider/provider.dart';
+import '../../models/courts_model.dart';
+import '../../models/slots_model.dart';
 import '../../models/time_slot.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/bottom_action_bar.dart';
 import '../../widgets/court_tile.dart';
+import '../../widgets/error_view.dart';
 import '../../widgets/section_title.dart';
 import '../../widgets/slot_chip.dart';
 
@@ -18,8 +21,9 @@ class TimeSlotScreen extends StatefulWidget {
 }
 
 class _TimeSlotScreenState extends State<TimeSlotScreen> {
+  // ephemeral state: lives in the screen, not in a model
   int _dayIndex = 2;
-  TimeSlot? _selected;
+  String? _selectedId;
 
   static const _days = <(String, String)>[
     ('Пн', '5'),
@@ -31,15 +35,21 @@ class _TimeSlotScreenState extends State<TimeSlotScreen> {
     ('Вс', '11'),
   ];
 
-  void _selectSlot(TimeSlot slot) {
-    // only free slots can be selected
-    if (!slot.isAvailable) return;
-    setState(() => _selected = slot);
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<SlotsModel>().load(widget.courtId);
+    });
   }
 
-  void _continue() {
-    final slot = _selected;
-    if (slot == null) {
+  void _selectSlot(TimeSlot slot) {
+    if (!slot.isAvailable) return; // only free slots can be selected
+    setState(() => _selectedId = slot.id);
+  }
+
+  void _continue(TimeSlot? selected) {
+    if (selected == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           behavior: SnackBarBehavior.floating,
@@ -48,29 +58,43 @@ class _TimeSlotScreenState extends State<TimeSlotScreen> {
       );
       return;
     }
-    context.push('/courts/${widget.courtId}/slots/${slot.id}/confirm');
+    context.push('/courts/${widget.courtId}/slots/${selected.id}/confirm');
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+    final courtsModel = context.watch<CourtsModel>();
+    final slotsModel = context.watch<SlotsModel>();
+    final court = courtsModel.byId(widget.courtId);
 
-    final court = MockData.courts.where((c) => c.id == widget.courtId).firstOrNull;
     if (court == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Выбор времени')),
-        body: const Center(child: Text('Площадка не найдена')),
+        body: Center(
+          child: courtsModel.isLoading
+              ? const CircularProgressIndicator()
+              : const Text('Площадка не существует'),
+        ),
       );
     }
 
-    final slots = MockData.slotsFor(court.id);
-    final selected = _selected;
+    final ready = slotsModel.courtId == widget.courtId &&
+        !slotsModel.isLoading &&
+        slotsModel.error == null;
+    final selected = ready && _selectedId != null ? slotsModel.byId(_selectedId!) : null;
     final price = court.pricePerHour.toStringAsFixed(0);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Выбор времени')),
-      body: ListView(
+    final Widget body;
+    if (slotsModel.courtId != widget.courtId || slotsModel.isLoading) {
+      body = const Center(child: CircularProgressIndicator());
+    } else if (slotsModel.error != null) {
+      body = ErrorView(
+        message: slotsModel.error!,
+        onRetry: () => context.read<SlotsModel>().load(widget.courtId),
+      );
+    } else {
+      final slots = slotsModel.slots;
+      body = ListView(
         padding: const EdgeInsets.all(16),
         children: [
           AppCard(
@@ -80,56 +104,13 @@ class _TimeSlotScreenState extends State<TimeSlotScreen> {
           const SizedBox(height: 24),
           const SectionTitle('Выберите день', trailing: 'Октябрь 2026'),
           const SizedBox(height: 12),
-          SizedBox(
-            height: 76,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: _days.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 10),
-              itemBuilder: (context, index) {
-                final (weekday, number) = _days[index];
-                final isSelected = index == _dayIndex;
-
-                return InkWell(
-                  borderRadius: BorderRadius.circular(18),
-                  onTap: () => setState(() {
-                    _dayIndex = index;
-                    _selected = null;
-                  }),
-                  child: Container(
-                    width: 58,
-                    decoration: BoxDecoration(
-                      color: isSelected ? scheme.primary : scheme.surfaceContainerLow,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(
-                        color: isSelected ? scheme.primary : scheme.outlineVariant,
-                      ),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          weekday,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isSelected ? scheme.onPrimary : scheme.onSurfaceVariant,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          number,
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
-                            color: isSelected ? scheme.onPrimary : scheme.onSurface,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
+          _DayStrip(
+            days: _days,
+            selectedIndex: _dayIndex,
+            onSelect: (i) => setState(() {
+              _dayIndex = i;
+              _selectedId = null;
+            }),
           ),
           const SizedBox(height: 24),
           const SectionTitle('Свободное время'),
@@ -140,32 +121,103 @@ class _TimeSlotScreenState extends State<TimeSlotScreen> {
             title: 'Утро',
             icon: Icons.wb_sunny_outlined,
             slots: slots.sublist(0, 4),
-            selected: selected,
+            selectedId: _selectedId,
             onSelect: _selectSlot,
           ),
           _SlotSection(
             title: 'День',
             icon: Icons.light_mode_outlined,
             slots: slots.sublist(4, 9),
-            selected: selected,
+            selectedId: _selectedId,
             onSelect: _selectSlot,
           ),
           _SlotSection(
             title: 'Вечер',
             icon: Icons.nights_stay_outlined,
             slots: slots.sublist(9),
-            selected: selected,
+            selectedId: _selectedId,
             onSelect: _selectSlot,
           ),
         ],
-      ),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Выбор времени')),
+      body: body,
       bottomNavigationBar: BottomActionBar(
         caption: selected == null
             ? 'Слот не выбран'
             : '${_days[_dayIndex].$1} ${_days[_dayIndex].$2} окт, ${selected.startTime}',
         value: '$price MDL',
         buttonLabel: 'Продолжить',
-        onPressed: _continue,
+        onPressed: () => _continue(selected),
+      ),
+    );
+  }
+}
+
+class _DayStrip extends StatelessWidget {
+  final List<(String, String)> days;
+  final int selectedIndex;
+  final void Function(int) onSelect;
+
+  const _DayStrip({
+    required this.days,
+    required this.selectedIndex,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return SizedBox(
+      height: 76,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: days.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 10),
+        itemBuilder: (context, index) {
+          final (weekday, number) = days[index];
+          final isSelected = index == selectedIndex;
+
+          return InkWell(
+            borderRadius: BorderRadius.circular(18),
+            onTap: () => onSelect(index),
+            child: Container(
+              width: 58,
+              decoration: BoxDecoration(
+                color: isSelected ? scheme.primary : scheme.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: isSelected ? scheme.primary : scheme.outlineVariant,
+                ),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    weekday,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isSelected ? scheme.onPrimary : scheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    number,
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: isSelected ? scheme.onPrimary : scheme.onSurface,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -231,20 +283,20 @@ class _SlotSection extends StatelessWidget {
   final String title;
   final IconData icon;
   final List<TimeSlot> slots;
-  final TimeSlot? selected;
+  final String? selectedId;
   final void Function(TimeSlot) onSelect;
 
   const _SlotSection({
     required this.title,
     required this.icon,
     required this.slots,
-    required this.selected,
+    required this.selectedId,
     required this.onSelect,
   });
 
   SlotState _stateOf(TimeSlot slot) {
     if (!slot.isAvailable) return SlotState.booked;
-    if (slot.id == selected?.id) return SlotState.selected;
+    if (slot.id == selectedId) return SlotState.selected;
     return SlotState.available;
   }
 
@@ -276,6 +328,7 @@ class _SlotSection extends StatelessWidget {
           children: [
             for (final s in slots)
               SlotChip(
+                key: ValueKey(s.id),
                 start: s.startTime,
                 end: s.endTime,
                 state: _stateOf(s),

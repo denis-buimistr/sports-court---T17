@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../data/mock_data.dart';
+import 'package:provider/provider.dart';
+import '../../models/bookings_model.dart';
+import '../../models/courts_model.dart';
+import '../../models/slots_model.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/bottom_action_bar.dart';
 import '../../widgets/court_tile.dart';
 import '../../widgets/info_row.dart';
 import '../../widgets/section_title.dart';
 
-class BookingConfirmScreen extends StatelessWidget {
+class BookingConfirmScreen extends StatefulWidget {
   final String courtId;
   final String slotId;
 
@@ -18,15 +21,45 @@ class BookingConfirmScreen extends StatelessWidget {
   });
 
   @override
+  State<BookingConfirmScreen> createState() => _BookingConfirmScreenState();
+}
+
+class _BookingConfirmScreenState extends State<BookingConfirmScreen> {
+  bool _saving = false; // ephemeral: only this screen cares
+
+  Future<void> _confirm() async {
+    final court = context.read<CourtsModel>().byId(widget.courtId);
+    final slot = context.read<SlotsModel>().byId(widget.slotId);
+    if (court == null || slot == null) return;
+
+    setState(() => _saving = true);
+    final error = await context.read<BookingsModel>().book(court: court, slot: slot);
+    if (!mounted) return; // the screen may die while the request flies
+    setState(() => _saving = false);
+
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(behavior: SnackBarBehavior.floating, content: Text(error)),
+      );
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        content: Text('Бронь подтверждена: ${court.name}, ${slot.startTime}'),
+      ),
+    );
+    context.go('/bookings'); // the list behind has already grown
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
 
-    // both ids come from the path, both objects are looked up here
-    final court = MockData.courts.where((c) => c.id == courtId).firstOrNull;
-    final slot = court == null
-        ? null
-        : MockData.slotsFor(court.id).where((s) => s.id == slotId).firstOrNull;
+    final court = context.watch<CourtsModel>().byId(widget.courtId);
+    final slot = context.watch<SlotsModel>().byId(widget.slotId);
 
     if (court == null || slot == null) {
       return Scaffold(
@@ -107,17 +140,8 @@ class BookingConfirmScreen extends StatelessWidget {
       bottomNavigationBar: BottomActionBar(
         caption: 'К оплате',
         value: price,
-        buttonLabel: 'Подтвердить бронь',
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              behavior: SnackBarBehavior.floating,
-              content: Text('Бронь подтверждена: ${court.name}, ${slot.startTime}'),
-            ),
-          );
-          // go: the whole booking chain leaves the stack
-          context.go('/bookings');
-        },
+        buttonLabel: _saving ? 'Бронируем…' : 'Подтвердить бронь',
+        onPressed: _saving ? null : _confirm,
       ),
     );
   }
