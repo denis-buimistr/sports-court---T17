@@ -27,4 +27,13 @@ class Booking {
 
   // upcoming = confirmed
   bool get isUpcoming => status == BookingStatus.confirmed;
+
+  // storage gives the real id, the model gives the new status
+  Booking copyWith({String? id, BookingStatus? status}) => Booking(
+        id: id ?? this.id,
+        court: court,
+        slot: slot,
+        totalPrice: totalPrice,
+        status: status ?? this.status,
+      );
 }

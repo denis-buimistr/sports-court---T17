@@ -2,13 +2,9 @@ import '../models/booking.dart';
 import '../models/court.dart';
 import '../models/time_slot.dart';
 
+// seed only: the single client of this file is the mock store
 class MockData {
   const MockData._();
-
-  // slot shown on the confirm screen
-  static const String demoDate = 'Ср, 7 окт';
-  static const String demoStart = '19:00';
-  static const String demoEnd = '20:00';
 
   static const List<String> districts = [
     'Центр',
@@ -102,8 +98,10 @@ class MockData {
     ),
   ];
 
+  static const String demoDate = 'Ср, 7 окт';
+
   // 14 hourly slots, 08:00-22:00
-  static List<TimeSlot> slotsFor(String courtId) {
+  static List<TimeSlot> seedSlots(String courtId) {
     const hours = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21];
     final busy = (int.tryParse(courtId) ?? 1).isEven
         ? const {9, 11, 12, 16, 17}
@@ -124,63 +122,42 @@ class MockData {
 
   static String _hour(int h) => '${h.toString().padLeft(2, '0')}:00';
 
-  // 3 upcoming + 5 past
-  static final List<Booking> bookings = [
-    Booking(
-      id: 'b1',
-      court: courts[0],
-      slot: const TimeSlot(id: 's1', courtId: '1', date: 'Ср, 7 окт', startTime: '19:00', endTime: '20:00', isAvailable: false),
-      totalPrice: 400,
-      status: BookingStatus.confirmed,
-    ),
-    Booking(
-      id: 'b2',
-      court: courts[2],
-      slot: const TimeSlot(id: 's2', courtId: '3', date: 'Пт, 9 окт', startTime: '18:00', endTime: '19:00', isAvailable: false),
-      totalPrice: 180,
-      status: BookingStatus.confirmed,
-    ),
-    Booking(
-      id: 'b3',
-      court: courts[4],
-      slot: const TimeSlot(id: 's3', courtId: '5', date: 'Вс, 11 окт', startTime: '11:00', endTime: '12:00', isAvailable: false),
-      totalPrice: 220,
-      status: BookingStatus.confirmed,
-    ),
-    Booking(
-      id: 'b4',
-      court: courts[1],
-      slot: const TimeSlot(id: 's4', courtId: '2', date: 'Ср, 30 сен', startTime: '20:00', endTime: '21:00', isAvailable: false),
-      totalPrice: 350,
-      status: BookingStatus.completed,
-    ),
-    Booking(
-      id: 'b5',
-      court: courts[5],
-      slot: const TimeSlot(id: 's5', courtId: '6', date: 'Пн, 28 сен', startTime: '19:00', endTime: '20:00', isAvailable: false),
-      totalPrice: 260,
-      status: BookingStatus.completed,
-    ),
-    Booking(
-      id: 'b6',
-      court: courts[2],
-      slot: const TimeSlot(id: 's6', courtId: '3', date: 'Сб, 26 сен', startTime: '10:00', endTime: '11:00', isAvailable: true),
-      totalPrice: 180,
-      status: BookingStatus.cancelled,
-    ),
-    Booking(
-      id: 'b7',
-      court: courts[0],
-      slot: const TimeSlot(id: 's7', courtId: '1', date: 'Ср, 23 сен', startTime: '19:00', endTime: '20:00', isAvailable: false),
-      totalPrice: 400,
-      status: BookingStatus.completed,
-    ),
-    Booking(
-      id: 'b8',
-      court: courts[6],
-      slot: const TimeSlot(id: 's8', courtId: '7', date: 'Вс, 20 сен', startTime: '16:00', endTime: '17:00', isAvailable: true),
-      totalPrice: 150,
-      status: BookingStatus.cancelled,
-    ),
-  ];
+  // 2 upcoming + 3 past
+  static List<Booking> seedBookings() => [
+        Booking(
+          id: 'b1',
+          court: courts[0],
+          slot: const TimeSlot(id: '1-19', courtId: '1', date: 'Ср, 7 окт', startTime: '19:00', endTime: '20:00', isAvailable: false),
+          totalPrice: 400,
+          status: BookingStatus.confirmed,
+        ),
+        Booking(
+          id: 'b2',
+          court: courts[2],
+          slot: const TimeSlot(id: '3-18', courtId: '3', date: 'Пт, 9 окт', startTime: '18:00', endTime: '19:00', isAvailable: false),
+          totalPrice: 180,
+          status: BookingStatus.confirmed,
+        ),
+        Booking(
+          id: 'b3',
+          court: courts[1],
+          slot: const TimeSlot(id: '2-20', courtId: '2', date: 'Ср, 30 сен', startTime: '20:00', endTime: '21:00', isAvailable: false),
+          totalPrice: 350,
+          status: BookingStatus.completed,
+        ),
+        Booking(
+          id: 'b4',
+          court: courts[5],
+          slot: const TimeSlot(id: '6-19', courtId: '6', date: 'Пн, 28 сен', startTime: '19:00', endTime: '20:00', isAvailable: false),
+          totalPrice: 260,
+          status: BookingStatus.completed,
+        ),
+        Booking(
+          id: 'b5',
+          court: courts[6],
+          slot: const TimeSlot(id: '7-16', courtId: '7', date: 'Вс, 20 сен', startTime: '16:00', endTime: '17:00', isAvailable: true),
+          totalPrice: 150,
+          status: BookingStatus.cancelled,
+        ),
+      ];
 }

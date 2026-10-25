@@ -14,4 +14,13 @@ class TimeSlot {
     required this.endTime,
     required this.isAvailable,
   });
+
+  TimeSlot copyWith({bool? isAvailable}) => TimeSlot(
+        id: id,
+        courtId: courtId,
+        date: date,
+        startTime: startTime,
+        endTime: endTime,
+        isAvailable: isAvailable ?? this.isAvailable,
+      );
 }
