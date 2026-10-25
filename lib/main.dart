@@ -1,7 +1,34 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'data/booking_repository.dart';
+import 'data/court_repository.dart';
+import 'data/mock_booking_repository.dart';
+import 'data/mock_court_repository.dart';
+import 'data/mock_store.dart';
+import 'models/bookings_model.dart';
+import 'models/courts_model.dart';
+import 'models/slots_model.dart';
 import 'router.dart';
 
-void main() => runApp(const SportsCourtApp());
+void main() {
+  // composition root: the data source is chosen HERE and only here
+  final store = MockStore();
+  final CourtRepository courtRepository = MockCourtRepository(store);
+  final BookingRepository bookingRepository = MockBookingRepository(store);
+
+  runApp(
+    MultiProvider(
+      providers: [
+        // failure-switch scaffolding (task 7) — disappears on L5
+        Provider<MockStore>.value(value: store),
+        ChangeNotifierProvider(create: (_) => CourtsModel(courtRepository)..load()),
+        ChangeNotifierProvider(create: (_) => BookingsModel(bookingRepository)..load()),
+        ChangeNotifierProvider(create: (_) => SlotsModel(courtRepository)),
+      ],
+      child: const SportsCourtApp(),
+    ),
+  );
+}
 
 class SportsCourtApp extends StatelessWidget {
   const SportsCourtApp({super.key});

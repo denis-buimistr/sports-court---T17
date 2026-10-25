@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../models/bookings_model.dart';
 
-// keeps the NavigationBar while the branch content changes
 class AppShell extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
 
@@ -14,18 +15,33 @@ class AppShell extends StatelessWidget {
       bottomNavigationBar: NavigationBar(
         selectedIndex: navigationShell.currentIndex,
         onDestinationSelected: navigationShell.goBranch,
-        destinations: const [
-          NavigationDestination(
+        destinations: [
+          const NavigationDestination(
             icon: Icon(Icons.sports_soccer_outlined),
             selectedIcon: Icon(Icons.sports_soccer),
             label: 'Площадки',
           ),
+          // one live corner: Consumer rebuilds only the badge
           NavigationDestination(
-            icon: Icon(Icons.event_note_outlined),
-            selectedIcon: Icon(Icons.event_note),
+            icon: Consumer<BookingsModel>(
+              builder: (context, bookings, child) => Badge(
+                isLabelVisible: bookings.upcomingCount > 0,
+                label: Text('${bookings.upcomingCount}'),
+                child: child,
+              ),
+              child: const Icon(Icons.event_note_outlined),
+            ),
+            selectedIcon: Consumer<BookingsModel>(
+              builder: (context, bookings, child) => Badge(
+                isLabelVisible: bookings.upcomingCount > 0,
+                label: Text('${bookings.upcomingCount}'),
+                child: child,
+              ),
+              child: const Icon(Icons.event_note),
+            ),
             label: 'Мои брони',
           ),
-          NavigationDestination(
+          const NavigationDestination(
             icon: Icon(Icons.person_outline),
             selectedIcon: Icon(Icons.person),
             label: 'Профиль',
