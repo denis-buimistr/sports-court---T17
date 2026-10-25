@@ -1,36 +1,77 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../data/mock_data.dart';
+import 'package:provider/provider.dart';
+import '../../models/courts_model.dart';
+import '../../models/slots_model.dart';
 import '../../widgets/amenity_chip.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/bottom_action_bar.dart';
 import '../../widgets/court_photo.dart';
+import '../../widgets/error_view.dart';
 import '../../widgets/info_row.dart';
 import '../../widgets/section_title.dart';
 import '../../widgets/sport_badge.dart';
 
-class CourtDetailsScreen extends StatelessWidget {
+class CourtDetailsScreen extends StatefulWidget {
   final String courtId;
 
   const CourtDetailsScreen({super.key, required this.courtId});
+
+  @override
+  State<CourtDetailsScreen> createState() => _CourtDetailsScreenState();
+}
+
+class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // the screen asks the model for its data, the model asks the repository
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<SlotsModel>().load(widget.courtId);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
 
-    // the id travels in the path, the screen looks the object up itself
-    final court = MockData.courts.where((c) => c.id == courtId).firstOrNull;
+    final courtsModel = context.watch<CourtsModel>();
+    final slotsModel = context.watch<SlotsModel>();
+    final court = courtsModel.byId(widget.courtId);
+
     if (court == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Площадка')),
-        body: const Center(child: Text('Площадка не найдена')),
+        body: Center(
+          child: courtsModel.isLoading
+              ? const CircularProgressIndicator() // the list is still loading
+              : const Text('Площадка не существует'), // loaded, no such id
+        ),
       );
     }
 
-    final slots = MockData.slotsFor(court.id);
-    final free = slots.where((s) => s.isAvailable).length;
     final price = court.pricePerHour.toStringAsFixed(0);
+    final slotsForThisCourt = slotsModel.courtId == widget.courtId;
+
+    final Widget slotsSummary;
+    if (!slotsForThisCourt || slotsModel.isLoading) {
+      slotsSummary = const SizedBox(
+        height: 20,
+        width: 20,
+        child: CircularProgressIndicator(strokeWidth: 2),
+      );
+    } else if (slotsModel.error != null) {
+      slotsSummary = Text(
+        'нет данных',
+        style: theme.textTheme.titleMedium?.copyWith(color: scheme.error),
+      );
+    } else {
+      slotsSummary = Text(
+        '${slotsModel.freeCount} из ${slotsModel.slots.length} слотов',
+        style: theme.textTheme.titleMedium,
+      );
+    }
 
     return Scaffold(
       body: CustomScrollView(
@@ -90,7 +131,7 @@ class CourtDetailsScreen extends StatelessWidget {
                               style: theme.textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
                             ),
                             const SizedBox(height: 2),
-                            Text('$free из ${slots.length} слотов', style: theme.textTheme.titleMedium),
+                            slotsSummary,
                           ],
                         ),
                       ],
@@ -121,6 +162,13 @@ class CourtDetailsScreen extends StatelessWidget {
                       ],
                     ),
                   ),
+                  if (slotsForThisCourt && slotsModel.error != null) ...[
+                    const SizedBox(height: 16),
+                    ErrorView(
+                      message: slotsModel.error!,
+                      onRetry: () => context.read<SlotsModel>().load(widget.courtId),
+                    ),
+                  ],
                   const SizedBox(height: 16),
                 ],
               ),
