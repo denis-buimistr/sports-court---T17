@@ -55,7 +55,7 @@ class BookingCard extends StatelessWidget {
             children: [
               StatusBadge(status: booking.status),
               const Spacer(),
-              if (action != null) action,
+              ?action,
             ],
           ),
         ],
