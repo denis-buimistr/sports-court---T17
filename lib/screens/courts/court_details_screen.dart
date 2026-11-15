@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../models/courts_model.dart';
 import '../../models/slots_model.dart';
@@ -22,6 +24,29 @@ class CourtDetailsScreen extends StatefulWidget {
 }
 
 class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
+  static const _shadow = [Shadow(color: Colors.black54, blurRadius: 6)];
+
+  bool _uploading = false; // ephemeral: only this button knows it
+
+  // L5 task 7: gallery -> POST /files -> PUT /courts/{id}/image
+  Future<void> _uploadPhoto() async {
+    final picked = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1600, // keeps the file well under the 5 MB server limit
+      imageQuality: 85,
+    );
+    if (picked == null || !mounted) return; // the user closed the gallery
+
+    setState(() => _uploading = true);
+    final error = await context.read<CourtsModel>().uploadPhoto(widget.courtId, picked.path);
+    if (!mounted) return;
+    setState(() => _uploading = false);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(error ?? 'Фото площадки загружено')),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -79,9 +104,59 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
           SliverAppBar(
             pinned: true,
             expandedHeight: 260,
+            // white text and icons over the photo; the collapsed bar is dark
+            // green so they stay readable after scrolling too
+            foregroundColor: Colors.white,
+            backgroundColor: scheme.primary,
+            systemOverlayStyle: SystemUiOverlayStyle.light,
+            actions: [
+              IconButton(
+                tooltip: 'Загрузить фото',
+                onPressed: _uploading ? null : _uploadPhoto,
+                icon: _uploading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.add_a_photo_outlined, shadows: _shadow),
+              ),
+            ],
             flexibleSpace: FlexibleSpaceBar(
-              title: Text(court.name),
-              background: CourtPhoto(court: court, height: 260),
+              title: Text(
+                court.name,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  shadows: _shadow,
+                ),
+              ),
+              background: Stack(
+                fit: StackFit.expand,
+                children: [
+                  CourtPhoto(court: court, height: 260),
+                  // dark fade at the top (icons) and bottom (title):
+                  // white text stays readable on any photo
+                  const DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Color(0x66000000),
+                          Color(0x00000000),
+                          Color(0x00000000),
+                          Color(0x99000000),
+                        ],
+                        stops: [0, 0.3, 0.55, 1],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           SliverToBoxAdapter(

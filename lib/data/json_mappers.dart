@@ -12,14 +12,16 @@ import '../models/time_slot.dart';
 // A body outside the contract throws FormatException / TypeError here,
 // and the repository catches it as layer 3.
 
-Court courtFromJson(Map<String, dynamic> j) => Court(
+// [baseUrl]: the server stores the photo as a RELATIVE url ("/files/7");
+// the app gets a full one, so Image.network needs nothing else
+Court courtFromJson(Map<String, dynamic> j, {String baseUrl = ''}) => Court(
       id: '${j['id'] as int}',
       name: j['name'] as String,
       sport: _byName(Sport.values, j['sport'] as String),
       district: j['district'] as String? ?? '',
       address: j['address'] as String? ?? '',
       pricePerHour: (j['pricePerHour'] as num).toDouble(), // 400 may come as int
-      imageUrl: j['imageUrl'] as String? ?? '',
+      imageUrl: _absolute(j['imageUrl'] as String? ?? '', baseUrl),
       amenities: (j['amenities'] as List? ?? const []).cast<String>(),
     );
 
@@ -33,9 +35,9 @@ TimeSlot timeSlotFromJson(Map<String, dynamic> j) => TimeSlot(
     );
 
 // the server sends a booking with its court and slot joined in
-Booking bookingFromJson(Map<String, dynamic> j) => Booking(
+Booking bookingFromJson(Map<String, dynamic> j, {String baseUrl = ''}) => Booking(
       id: '${j['id'] as int}',
-      court: courtFromJson(j['court'] as Map<String, dynamic>),
+      court: courtFromJson(j['court'] as Map<String, dynamic>, baseUrl: baseUrl),
       slot: timeSlotFromJson(j['slot'] as Map<String, dynamic>),
       totalPrice: (j['totalPrice'] as num).toDouble(),
       status: _byName(BookingStatus.values, j['status'] as String),
@@ -50,6 +52,9 @@ extension BookingJson on Booking {
         'status': status.name,
       };
 }
+
+String _absolute(String url, String baseUrl) =>
+    url.startsWith('/') ? '$baseUrl$url' : url;
 
 // an unknown enum value is a body outside the contract
 T _byName<T extends Enum>(List<T> values, String name) => values.firstWhere(
