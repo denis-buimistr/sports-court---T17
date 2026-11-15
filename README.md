@@ -74,6 +74,6 @@ Booking   (id, timeSlotId, userId, totalPrice, status, createdAt)
 | L1 | ✅ | Topic chosen, spec written (this README) |
 | L2 | ✅  | Static UI: court list, court card, time slots |
 | L3 | ✅  | Navigation (go_router) + form validation |
-| L4 | ⬜ | State management + Repository with mock data |
-| L5 | ⬜ | Real backend (Spring Boot) + JWT auth |
+| L4 | ✅ | State management + Repository with mock data |
+| L5 | ✅ | Real backend (Spring Boot) + JWT auth |
 | L6 | ⬜ | Offline cache, tests, release build |
