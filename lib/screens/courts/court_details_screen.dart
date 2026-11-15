@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../models/courts_model.dart';
 import '../../models/slots_model.dart';
@@ -22,6 +23,27 @@ class CourtDetailsScreen extends StatefulWidget {
 }
 
 class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
+  bool _uploading = false; // ephemeral: only this button knows it
+
+  // L5 task 7: gallery -> POST /files -> PUT /courts/{id}/image
+  Future<void> _uploadPhoto() async {
+    final picked = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1600, // keeps the file well under the 5 MB server limit
+      imageQuality: 85,
+    );
+    if (picked == null || !mounted) return; // the user closed the gallery
+
+    setState(() => _uploading = true);
+    final error = await context.read<CourtsModel>().uploadPhoto(widget.courtId, picked.path);
+    if (!mounted) return;
+    setState(() => _uploading = false);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(error ?? 'Фото площадки загружено')),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -79,6 +101,19 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
           SliverAppBar(
             pinned: true,
             expandedHeight: 260,
+            actions: [
+              IconButton(
+                tooltip: 'Загрузить фото',
+                onPressed: _uploading ? null : _uploadPhoto,
+                icon: _uploading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.add_a_photo_outlined),
+              ),
+            ],
             flexibleSpace: FlexibleSpaceBar(
               title: Text(court.name),
               background: CourtPhoto(court: court, height: 260),

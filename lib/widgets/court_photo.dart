@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import '../models/court.dart';
 import 'sport_style.dart';
 
-// placeholder instead of a photo: gradient + sport icon
+// the uploaded photo (L5 task 7) or, without one, the placeholder:
+// gradient + sport icon
 class CourtPhoto extends StatelessWidget {
   final Court court;
   final double height;
@@ -17,6 +18,21 @@ class CourtPhoto extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (court.imageUrl.isEmpty) return _placeholder(context);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: Image.network(
+        court.imageUrl,
+        height: height,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        // a broken / unreachable file falls back to the placeholder
+        errorBuilder: (context, _, _) => _placeholder(context),
+      ),
+    );
+  }
+
+  Widget _placeholder(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final (bg, fg) = court.sport.colors(scheme);
 

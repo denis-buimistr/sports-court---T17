@@ -15,7 +15,7 @@ class HttpBookingRepository extends HttpRepositoryBase implements BookingReposit
   HttpBookingRepository(super.baseUrl, super.tokens, {super.onUnauthorized});
 
   Booking _decode(String body) =>
-      bookingFromJson(jsonDecode(body) as Map<String, dynamic>);
+      bookingFromJson(jsonDecode(body) as Map<String, dynamic>, baseUrl: baseUrl);
 
   // GET /bookings -> 200 {items, page, limit, total}
   @override
@@ -28,7 +28,7 @@ class HttpBookingRepository extends HttpRepositoryBase implements BookingReposit
 
         final data = jsonDecode(res.body) as Map<String, dynamic>;
         return Ok((data['items'] as List)
-            .map((e) => bookingFromJson(e as Map<String, dynamic>))
+            .map((e) => bookingFromJson(e as Map<String, dynamic>, baseUrl: baseUrl))
             .toList());
       });
 
