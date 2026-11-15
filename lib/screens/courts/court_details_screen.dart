@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -23,6 +24,8 @@ class CourtDetailsScreen extends StatefulWidget {
 }
 
 class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
+  static const _shadow = [Shadow(color: Colors.black54, blurRadius: 6)];
+
   bool _uploading = false; // ephemeral: only this button knows it
 
   // L5 task 7: gallery -> POST /files -> PUT /courts/{id}/image
@@ -101,6 +104,11 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
           SliverAppBar(
             pinned: true,
             expandedHeight: 260,
+            // white text and icons over the photo; the collapsed bar is dark
+            // green so they stay readable after scrolling too
+            foregroundColor: Colors.white,
+            backgroundColor: scheme.primary,
+            systemOverlayStyle: SystemUiOverlayStyle.light,
             actions: [
               IconButton(
                 tooltip: 'Загрузить фото',
@@ -109,14 +117,46 @@ class _CourtDetailsScreenState extends State<CourtDetailsScreen> {
                     ? const SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
-                    : const Icon(Icons.add_a_photo_outlined),
+                    : const Icon(Icons.add_a_photo_outlined, shadows: _shadow),
               ),
             ],
             flexibleSpace: FlexibleSpaceBar(
-              title: Text(court.name),
-              background: CourtPhoto(court: court, height: 260),
+              title: Text(
+                court.name,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  shadows: _shadow,
+                ),
+              ),
+              background: Stack(
+                fit: StackFit.expand,
+                children: [
+                  CourtPhoto(court: court, height: 260),
+                  // dark fade at the top (icons) and bottom (title):
+                  // white text stays readable on any photo
+                  const DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Color(0x66000000),
+                          Color(0x00000000),
+                          Color(0x00000000),
+                          Color(0x99000000),
+                        ],
+                        stops: [0, 0.3, 0.55, 1],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           SliverToBoxAdapter(
