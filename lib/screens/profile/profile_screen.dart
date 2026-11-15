@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../../data/mock_store.dart';
+import '../../data/auth_api.dart';
 import '../../models/bookings_model.dart';
 import '../../models/courts_model.dart';
 import '../../widgets/app_card.dart';
@@ -17,9 +17,6 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  // ephemeral state: the switch position lives in the screen
-  bool _simulateError = false;
-
   Future<void> _logout(BuildContext context) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -39,9 +36,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
 
-    if (ok == true && context.mounted) {
-      context.go('/login');
-    }
+    if (ok != true || !context.mounted) return;
+    await context.read<AuthApi>().logout(); // the token leaves prefs
+    if (!context.mounted) return;
+    context.go('/login');
   }
 
   @override
@@ -120,22 +118,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ],
               ],
-            ),
-          ),
-          const SizedBox(height: 24),
-          const SectionTitle('Разработка'),
-          const SizedBox(height: 8),
-          AppCard(
-            child: SwitchListTile(
-              secondary: Icon(Icons.wifi_off, color: scheme.error),
-              title: const Text('Симулировать сбой сети'),
-              subtitle: const Text('Любой запрос к хранилищу вернёт ошибку'),
-              value: _simulateError,
-              onChanged: (value) {
-                setState(() => _simulateError = value);
-                // the only UI place allowed to know about the mock
-                context.read<MockStore>().simulateError = value;
-              },
             ),
           ),
           const SizedBox(height: 24),
