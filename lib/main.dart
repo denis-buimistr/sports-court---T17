@@ -5,9 +5,8 @@ import 'package:provider/provider.dart';
 import 'data/auth_api.dart';
 import 'data/booking_repository.dart';
 import 'data/court_repository.dart';
-import 'data/mock_booking_repository.dart';
-import 'data/mock_court_repository.dart';
-import 'data/mock_store.dart';
+import 'data/http_booking_repository.dart';
+import 'data/http_court_repository.dart';
 import 'data/token_store.dart';
 import 'models/bookings_model.dart';
 import 'models/courts_model.dart';
@@ -33,17 +32,20 @@ Future<void> main() async {
     routes: appRoutes, // L3 routes, unchanged
   );
 
-  // composition root: the data source is chosen HERE and only here
-  final store = MockStore();
-  final CourtRepository courtRepository = MockCourtRepository(store);
-  final BookingRepository bookingRepository = MockBookingRepository(store);
+  // composition root: the data source is chosen HERE and only here.
+  // L4: Mock*Repository(store)  ->  L5: Http*Repository — nothing else changes.
+  // 401 -> login, decided in one place (the repositories do not know the router)
+  void toLogin() => router.go('/login');
+
+  final CourtRepository courtRepository =
+      HttpCourtRepository(apiBase, tokens, onUnauthorized: toLogin);
+  final BookingRepository bookingRepository =
+      HttpBookingRepository(apiBase, tokens, onUnauthorized: toLogin);
 
   runApp(
     MultiProvider(
       providers: [
         Provider<AuthApi>(create: (_) => AuthApi(apiBase, tokens)),
-        // failure-switch scaffolding (task 7) — disappears on L5
-        Provider<MockStore>.value(value: store),
         ChangeNotifierProvider(create: (_) => CourtsModel(courtRepository)..load()),
         ChangeNotifierProvider(create: (_) => BookingsModel(bookingRepository)..load()),
         ChangeNotifierProvider(create: (_) => SlotsModel(courtRepository)),

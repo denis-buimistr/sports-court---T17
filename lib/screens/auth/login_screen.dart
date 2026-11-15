@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../data/auth_api.dart';
 import '../../data/result.dart';
+import '../../models/bookings_model.dart';
+import '../../models/courts_model.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -53,7 +55,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
     switch (result) {
       case Ok():
-        context.go('/courts'); // token saved — go, not push: login leaves the stack
+        // a new pass -> the data of THIS user (after a logout the models
+        // still hold the previous session; before login they got a 401)
+        context.read<CourtsModel>().load();
+        context.read<BookingsModel>().load();
+        context.go('/courts'); // go, not push: login leaves the stack
       case Err(:final msg):
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     }
