@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../../data/auth_api.dart';
+import '../../data/result.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -16,6 +19,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _phoneCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   final _repeatCtrl = TextEditingController();
+  bool _busy = false; // ephemeral: the button is off while the request flies
 
   @override
   void dispose() {
@@ -27,9 +31,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  void _submit() {
+  // the valid submit creates the account on the server and logs in at once
+  // (the phone stays local: the contract takes only email, password, name)
+  Future<void> _submit() async {
+    if (_busy) return;
     if (!_formKey.currentState!.validate()) return;
-    context.go('/courts');
+
+    setState(() => _busy = true);
+    final result = await context.read<AuthApi>().register(
+          _emailCtrl.text.trim(),
+          _passwordCtrl.text,
+          _nameCtrl.text.trim(),
+        );
+    if (!mounted) return;
+    setState(() => _busy = false);
+
+    switch (result) {
+      case Ok():
+        context.go('/courts'); // token saved
+      case Err(:final msg):
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    }
   }
 
   @override
@@ -147,8 +169,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 28),
               FilledButton(
-                onPressed: _submit,
-                child: const Text('Создать аккаунт'),
+                onPressed: _busy ? null : _submit,
+                child: _busy
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2.5),
+                      )
+                    : const Text('Создать аккаунт'),
               ),
               const SizedBox(height: 8),
               Row(

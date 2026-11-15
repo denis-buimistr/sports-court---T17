@@ -10,9 +10,12 @@ import 'screens/profile/profile_edit_screen.dart';
 import 'screens/profile/profile_screen.dart';
 import 'widgets/app_shell.dart';
 
-final router = GoRouter(
-  initialLocation: '/login',
-  routes: [
+// assigned in main(): the start screen depends on the saved token,
+// and reading it is async (late — otherwise assignment_to_final)
+late final GoRouter router;
+
+// the L3 routes, unchanged
+final List<RouteBase> appRoutes = [
     // auth stays outside the shell: no tabs here
     GoRoute(
       path: '/login',
@@ -81,5 +84,4 @@ final router = GoRouter(
         ),
       ],
     ),
-  ],
-);
+  ];

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../../data/auth_api.dart';
+import '../../data/result.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -13,6 +16,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   bool _obscure = true;
+  bool _busy = false; // ephemeral: the button is off while the request flies
 
   @override
   void dispose() {
@@ -35,10 +39,24 @@ class _LoginScreenState extends State<LoginScreen> {
     return null;
   }
 
-  void _submit() {
+  // the valid submit now hits the server (L3 validators untouched)
+  Future<void> _submit() async {
+    if (_busy) return; // no double submit
     if (!_formKey.currentState!.validate()) return;
-    // go, not push: login leaves the stack
-    context.go('/courts');
+
+    setState(() => _busy = true);
+    final result = await context
+        .read<AuthApi>()
+        .login(_emailCtrl.text.trim(), _passwordCtrl.text);
+    if (!mounted) return; // the screen may die while the request flies
+    setState(() => _busy = false);
+
+    switch (result) {
+      case Ok():
+        context.go('/courts'); // token saved — go, not push: login leaves the stack
+      case Err(:final msg):
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    }
   }
 
   @override
@@ -138,8 +156,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 24),
                     FilledButton(
-                      onPressed: _submit,
-                      child: const Text('Войти'),
+                      onPressed: _busy ? null : _submit,
+                      child: _busy
+                          ? const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(strokeWidth: 2.5),
+                            )
+                          : const Text('Войти'),
                     ),
                     const SizedBox(height: 8),
                     Row(
